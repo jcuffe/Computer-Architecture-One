@@ -35,6 +35,11 @@ const instructions = {
     0b10110010: 'XOR'
 }
 
+// Indices of registers reserved by the cpu
+const IM = 5
+const IS = 6
+const SP = 7
+
 /**
  * Class for simulating a simple Computer (CPU & memory)
  */
@@ -50,6 +55,7 @@ class CPU {
         
         // Special-purpose registers
         this.PC = 0; // Program Counter
+        this.reg[SP] = this.ram.getLastAddress() - 13 // Initialize stack pointer
     }
     
     /**
