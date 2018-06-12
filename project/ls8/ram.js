@@ -26,6 +26,10 @@ class RAM {
         // Read the value in address MAR and return it
         return this.mem[MAR]
     }
+
+    getLastAddress() {
+        return this.mem.length - 1
+    }
 }
 
 module.exports = RAM;
