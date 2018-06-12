@@ -194,21 +194,18 @@ class CPU {
 
     // Copy value in register to a new address in stack memory
     PUSH(register) {
-        this.reg[SP] -= 1
-        this.ram.write(this.reg[SP], this.reg[register])
+        this._push(this.reg[register])
     }
 
     // Copy the latest value in stack memory to provided register
     POP(register) {
-        this.reg[register] = this.ram.read(this.reg[SP])
-        this.reg[SP] += 1
+        this.reg[register] = this._pop()
     }
 
     // Change the PC to point to an instruction stored in memory
     CALL(register) {
         // Store the next instruction on the stack before modifying PC
-        this.reg[SP] -= 1
-        this.ram.write(this.reg[SP], this.PC + 1)
+        this._push(this.PC + 1)
 
         // Set the PC to the address stored in register
         this.PC = this.reg[register]
@@ -216,9 +213,25 @@ class CPU {
 
     // Change the PC to point to the address on top of the stack
     RET() {
-        this.PC = this.ram.read(this.reg[SP])
-        this.reg[SP] += 1
+        this.PC = this._pop()
     }
+
+    //
+    //  Internal methods
+    //
+
+    // Get a new stack frame and write the provided value
+    _push(value) {
+        this.reg[SP]++
+        this.ram.write(this.reg[SP], value)
+    }
+
+    // Discard the current stack frame and return its value
+    _pop() {
+        const value = this.ram.read(this.reg[SP])
+        this.reg[SP]--
+        return value
+    }   
 }
 
 module.exports = CPU;
