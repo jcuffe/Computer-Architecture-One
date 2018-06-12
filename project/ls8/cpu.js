@@ -92,12 +92,27 @@ class CPU {
      * op can be: ADD SUB MUL DIV INC DEC CMP
      */
     alu(op, regA, regB) {
+        const lval = this.reg[regA]
+        const rval = this.reg[regB]
         switch (op) {
+            case 'ADD':
+                return lval + rval
+            case 'SUB':
+                return lval - rval
             case 'MUL':
-                const lval = this.ram.read(regA)
-                const rval = this.ram.read(regB)
-                this.ram.write(regA, lval * rval)
-                break;
+                return lval * rval
+            case 'DIV':
+                if (regB === 0) {
+                    console.log('Error: Division by zero')
+                    this.HLT()
+                }
+                return Math.floor(lval / rval)
+            case 'INC':
+                return lval + 1
+            case 'DEC':
+                return lval - 1
+            case 'CMP':
+                // Set the FL register flags based on comparison
         }
     }
 
@@ -132,29 +147,77 @@ class CPU {
         // instruction byte tells you how many bytes follow the instruction byte
         // for any particular instruction.
         
-        // Increment PC by 1 + the value of the two leftmost bits of the instruction
-        this.PC += ((IR & 0b11000000) >> 6) + 1
+        // Implement the PC unless the instruction was CALL or JMP
+        if (!['CALL', 'JMP'].includes(instruction)) {
+            // Increment PC by 1 + the value of the two leftmost bits of the instruction
+            this.PC += (IR >> 6) + 1
+        }
         // console.log(`new PC: ${this.PC}`)
     }
 
-    // Handler functions for all operations
-    LDI(b1, b2) {
-        // console.log(`LDI ${b1} ${b2}`)
-        this.ram.write(b1, b2)
+    //
+    // I/O functions
+    //
+    
+    // Store immediate value into register
+    LDI(register, immediate) {
+        // console.log(`LDI ${register} ${immediate}`)
+        this.reg[register] = immediate
+    }
+    
+    // Print number value from register
+    PRN(register) {
+        console.log(this.reg[register])
     }
 
-    MUL(b1, b2) {
-        this.alu('MUL', b1, b2)
+    //
+    // Math functions
+    //
+
+    ADD(reg1, reg2) {
+        this.reg[reg1] = this.alu('ADD', reg1, reg2)
     }
 
-    PRN(b1) {
-        // console.log(`PRN ${b1}`)
-        console.log(this.ram.read(b1))
+    MUL(reg1, reg2) {
+        this.reg[reg1] = this.alu('MUL', reg1, reg2)
     }
 
+    //
+    // Control flow functions
+    //
+
+    // Stop the system
     HLT() {
-        // console.log('HLT')
+        console.log('registers: ', this.reg)
         this.stopClock()
+    }
+
+    // Copy value in register to a new address in stack memory
+    PUSH(register) {
+        this.reg[SP] -= 1
+        this.ram.write(this.reg[SP], this.reg[register])
+    }
+
+    // Copy the latest value in stack memory to provided register
+    POP(register) {
+        this.reg[register] = this.ram.read(this.reg[SP])
+        this.reg[SP] += 1
+    }
+
+    // Change the PC to point to an instruction stored in memory
+    CALL(register) {
+        // Store the next instruction on the stack before modifying PC
+        this.reg[SP] -= 1
+        this.ram.write(this.reg[SP], this.PC + 1)
+
+        // Set the PC to the address stored in register
+        this.PC = this.reg[register]
+    }
+
+    // Change the PC to point to the address on top of the stack
+    RET() {
+        this.PC = this.ram.read(this.reg[SP])
+        this.reg[SP] += 1
     }
 }
 
