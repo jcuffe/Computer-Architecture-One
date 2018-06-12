@@ -2,6 +2,39 @@
  * LS-8 v2.0 emulator skeleton code
  */
 
+const instructions = {
+    0b10101000: 'ADD',
+    0b10110011: 'AND',
+    0b01001000: 'CALL',
+    0b10100000: 'CMP',
+    0b01111001: 'DEC',
+    0b10101011: 'DIV',
+    0b00000001: 'HLT',
+    0b01111000: 'INC',
+    0b01001010: 'INT',
+    0b00001011: 'IRET',
+    0b01010001: 'JEQ',
+    0b01010100: 'JGT',
+    0b01010011: 'JLT',
+    0b01010000: 'JMP',
+    0b01010010: 'JNE',
+    0b10011000: 'LD',
+    0b10011001: 'LDI',
+    0b10101100: 'MOD',
+    0b10101010: 'MUL',
+    0b00000000: 'NOP',
+    0b01110000: 'NOT',
+    0b10110001: 'OR',
+    0b01001100: 'POP',
+    0b01000010: 'PRA',
+    0b01000011: 'PRN',
+    0b01001101: 'PUSH',
+    0b00001001: 'RET',
+    0b10011010: 'ST',
+    0b10101001: 'SUB',
+    0b10110010: 'XOR'
+}
+
 /**
  * Class for simulating a simple Computer (CPU & memory)
  */
@@ -83,19 +116,8 @@ class CPU {
         // Execute the instruction. Perform the actions for the instruction as
         // outlined in the LS-8 spec.
 
-        switch (IR) {
-            case 0b10011001: // LDI
-                this.ram.write(b1, b2)
-                break;
-            case 0b01000011: // PRN
-                console.log(this.ram.read(b1))
-                break;
-            case 0b00000001: // HLT
-                this.stopClock()
-                break;
-            default:
-                console.log(`Unrecognized instruction ${IR.toString(2)}`)
-        }
+        const instruction = instructions[IR]
+        this[instruction](b1, b2)
 
         // Increment the PC register to go to the next instruction. Instructions
         // can be 1, 2, or 3 bytes long. Hint: the high 2 bits of the
@@ -105,6 +127,22 @@ class CPU {
         // Increment PC by 1 + the value of the two leftmost bits of the instruction
         this.PC += ((IR & 0b11000000) >> 6) + 1
         console.log(`new PC: ${this.PC}`)
+    }
+
+    // Handler functions for all operations
+    LDI(b1, b2) {
+        // console.log(`LDI ${b1} ${b2}`)
+        this.ram.write(b1, b2)
+    }
+
+    PRN(b1) {
+        // console.log(`PRN ${b1}`)
+        console.log(this.ram.read(b1))
+    }
+
+    HLT() {
+        // console.log('HLT')
+        this.stopClock()
     }
 }
 
