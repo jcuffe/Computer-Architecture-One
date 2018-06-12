@@ -88,7 +88,9 @@ class CPU {
     alu(op, regA, regB) {
         switch (op) {
             case 'MUL':
-                // !!! IMPLEMENT ME
+                const lval = this.ram.read(regA)
+                const rval = this.ram.read(regB)
+                this.ram.write(regA, lval * rval)
                 break;
         }
     }
@@ -126,13 +128,17 @@ class CPU {
         
         // Increment PC by 1 + the value of the two leftmost bits of the instruction
         this.PC += ((IR & 0b11000000) >> 6) + 1
-        console.log(`new PC: ${this.PC}`)
+        // console.log(`new PC: ${this.PC}`)
     }
 
     // Handler functions for all operations
     LDI(b1, b2) {
         // console.log(`LDI ${b1} ${b2}`)
         this.ram.write(b1, b2)
+    }
+
+    MUL(b1, b2) {
+        this.alu('MUL', b1, b2)
     }
 
     PRN(b1) {
