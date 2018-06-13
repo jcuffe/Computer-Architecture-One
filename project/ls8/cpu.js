@@ -55,30 +55,42 @@ class CPU {
         
         // Special-purpose registers
         this.PC = 0; // Program Counter
-        this.reg[SP] = this.ram.getLastAddress() - 13 // Initialize stack pointer
+        this.FL = 0; // Comparison flags
+        this.reg[SP] = 0xf3 // Initialize stack pointer
+
+        // Spec demands interrupt priority
+        this.interruptsEnabled = true
     }
     
     /**
      * Store value in memory address, useful for program loading
      */
     poke(address, value) {
-        this.ram.write(address, value);
+        this.ram.write(address, value)
     }
 
     /**
      * Starts the clock ticking on the CPU
      */
     startClock() {
+        // Every millisecond, perform one cpu cycle
         this.clock = setInterval(() => {
-            this.tick();
-        }, 1); // 1 ms delay == 1 KHz clock == 0.000001 GHz
+            this.tick()
+        }, 1) // 1 ms delay == 1 KHz clock == 0.000001 GHz
+
+        // Fire the timer interrupt
+        // Every second, set the 0th bit of the Interrupt status to 1
+        this.timer = setInterval(() => {
+            this.reg[IS] |= 1
+        }, 1000)
     }
 
     /**
      * Stops the clock
      */
     stopClock() {
-        clearInterval(this.clock);
+        clearInterval(this.clock)
+        clearInterval(this.timer)
     }
 
     /**
@@ -120,6 +132,31 @@ class CPU {
      * Advances the CPU one cycle
      */
     tick() {
+        // Interrupt handling - prior to instruction fetch, check the Interrupt Mask
+        // against the Interrupt Status to see if any desired interrupts occurred.
+        // If so, suspend the current state by pushing to the stack, and change PC
+        // to the location of the handler for the interrupt
+
+        let interrupts = this.reg[IM] & this.reg[IS]
+        for (let i = 0; i < 8; i++) {
+            if ((interrupts >> i) & 1) {
+                // Save all of our registers on the stack
+                this._pushState()
+                
+                // Disallow any further interrupts until IRET
+                this.interruptsEnabled = false
+                
+                // Clear the bit for the interrupt we are handling
+                this.reg[IS] &= ~(1 << i)
+                
+                // The first instruction for the handler is stored in this byte, per the spec
+                this.PC = this.ram.read(0xf8 + i)
+
+                // console.log('next instruction: ', instructions[this.ram.read(this.PC)])
+                break // Handle one interrupt per tick
+            }
+        }
+
         // Load the instruction register (IR--can just be a local variable here)
         // from the memory address pointed to by the PC. (I.e. the PC holds the
         // index into memory of the instruction that's about to be executed
@@ -148,13 +185,13 @@ class CPU {
         // for any particular instruction.
         
         // Implement the PC unless the instruction was CALL or JMP
-        if (!['CALL', 'JMP'].includes(instruction)) {
+        if (!['CALL', 'JMP', 'RET'].includes(instruction)) {
             // Increment PC by 1 + the value of the two leftmost bits of the instruction
             this.PC += (IR >> 6) + 1
         }
         // console.log(`new PC: ${this.PC}`)
     }
-
+    
     //
     // I/O functions
     //
@@ -165,6 +202,16 @@ class CPU {
         this.reg[register] = immediate
     }
     
+    // Write the value in reg2 to the address in reg1
+    ST(reg1, reg2) {
+        this.ram.write(this.reg[reg1], this.reg[reg2])
+    }
+
+    // Print character for value in register
+    PRA(register) {
+        console.log(String.fromCharCode(this.reg[register]))
+    }
+
     // Print number value from register
     PRN(register) {
         console.log(this.reg[register])
@@ -215,22 +262,56 @@ class CPU {
         this.PC = this._pop()
     }
 
+    // Return from an interrupt handler
+    IRET() {
+        this.PC = this._popState()
+        this.interruptsEnabled = true
+    }
+
+    // Change the PC to point to the address in given register
+    JMP(register) {
+        this.PC = this.reg[register]
+    }
+
+    // Do nothing
+    NOP() {
+
+    }
+    
     //
     //  Internal methods
     //
 
     // Get a new stack frame and write the provided value
     _push(value) {
-        this.reg[SP]++
+        this.reg[SP]--
         this.ram.write(this.reg[SP], value)
     }
 
     // Discard the current stack frame and return its value
     _pop() {
         const value = this.ram.read(this.reg[SP])
-        this.reg[SP]--
+        this.reg[SP]++
         return value
-    }   
+    }
+    
+    // Push all registers onto the stack in preparation for an interrupt
+    _pushState() {
+        this._push(this.PC)
+        this._push(this.FL)
+        for (let i = 0; i < 7; i++) {
+            this._push(this.reg[i])
+        }
+    }
+
+    // Recover registers from the stack after an interrupt
+    _popState() {
+        for (let i = 6; i >= 0; i--) {
+            this.reg[i] = this._pop()
+        }
+        this.FL = this._pop()
+        return this._pop()
+    }
 }
 
 module.exports = CPU;
