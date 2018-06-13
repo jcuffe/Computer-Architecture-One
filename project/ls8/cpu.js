@@ -204,8 +204,7 @@ class CPU {
 
     // Change the PC to point to an instruction stored in memory
     CALL(register) {
-        // Store the next instruction on the stack before modifying PC
-        this._push(this.PC + 1)
+        this._push(this.PC + 2)
 
         // Set the PC to the address stored in register
         this.PC = this.reg[register]
