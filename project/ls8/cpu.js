@@ -96,21 +96,21 @@ class CPU {
         const rval = this.reg[regB]
         switch (op) {
             case 'ADD':
-                return lval + rval
+                return lval + rval & 0xff
             case 'SUB':
-                return lval - rval
+                return lval - rval & 0xff
             case 'MUL':
-                return lval * rval
+                return lval * rval & 0xff
             case 'DIV':
                 if (regB === 0) {
                     console.log('Error: Division by zero')
                     this.HLT()
                 }
-                return Math.floor(lval / rval)
+                return Math.floor(lval / rval) & 0xff
             case 'INC':
-                return lval + 1
+                return lval + 1 & 0xff
             case 'DEC':
-                return lval - 1
+                return lval - 1 & 0xff
             case 'CMP':
                 // Set the FL register flags based on comparison
         }
