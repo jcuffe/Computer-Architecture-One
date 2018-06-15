@@ -124,7 +124,17 @@ class CPU {
             case 'DEC':
                 return lval - 1 & 0xff
             case 'CMP':
-                // Set the FL register flags based on comparison
+                this.FL &= 0xf8
+                const lval = this.reg[regA]
+                const rval = this.reg[regB]
+                if (lval < rval) {
+                    this.FL |= 4  // Set the L bit
+                } else if (lval > rval) {
+                    this.FL |= 2  // Set the G bit
+                } else {
+                    this.FL |= 1  // Set the E bit
+                }
+                break
         }
     }
 
@@ -177,6 +187,7 @@ class CPU {
         // outlined in the LS-8 spec.
 
         const instruction = instructions[IR]
+        // console.log(instruction)
         this[instruction](b1, b2)
 
         // Increment the PC register to go to the next instruction. Instructions
@@ -185,7 +196,7 @@ class CPU {
         // for any particular instruction.
         
         // Implement the PC unless the instruction was CALL or JMP
-        if (!['CALL', 'JMP', 'RET'].includes(instruction)) {
+        if (!['CALL', 'JMP', 'RET', 'JEQ', 'JNE'].includes(instruction)) {
             // Increment PC by 1 + the value of the two leftmost bits of the instruction
             this.PC += (IR >> 6) + 1
         }
@@ -230,6 +241,14 @@ class CPU {
     }
 
     //
+    // Comparisons
+    // 
+
+    CMP(reg1, reg2) {
+        this.alu('CMP', reg1, reg2)
+    }
+
+    //
     // Control flow functions
     //
 
@@ -271,6 +290,26 @@ class CPU {
     // Change the PC to point to the address in given register
     JMP(register) {
         this.PC = this.reg[register]
+    }
+
+    // If the internal E flag is set, jump to the address in register
+    JEQ(register) {
+        // Check if least bit is set
+        if (this.FL & 1) {
+            this.PC = this.reg[register]
+        } else {
+            this.PC += 2
+        }
+    }
+
+    // If the E flag is *not* set, jump to the address in register
+    JNE(register) {
+        // Check if least bit is not set
+        if (~this.FL & 1) {
+            this.PC = this.reg[register]
+        } else {
+            this.PC += 2
+        }
     }
 
     // Do nothing
