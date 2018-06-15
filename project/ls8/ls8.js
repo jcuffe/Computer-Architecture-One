@@ -18,7 +18,7 @@ function loadMemory() {
 
     try {
         // Read the file from disk and grab only the instruction from lines that have one
-        const program = fs.readFileSync(`./${fileName}`, 'utf8')
+        const program = fs.readFileSync(fileName, 'utf8')
             .split('\r\n')
             .filter(line => line.match(/\d{8}\b/))
             .map(line => line.slice(0, 8))
